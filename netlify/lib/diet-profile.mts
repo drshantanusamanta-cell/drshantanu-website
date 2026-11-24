@@ -60,6 +60,8 @@ export function analyzeProfile(p: Profile | undefined, condition: string): Analy
   const creat = num(p.creatinine, 0.1, 25)
   const k = num(p.potassium, 1.5, 10)
   const dialysis = p.dialysis === true
+  const tsh = num(p.tsh, 0.005, 200)
+  const thyroxine = p.thyroxine === true
 
   const facts: string[] = []
   const lines: string[] = []
@@ -163,6 +165,20 @@ export function analyzeProfile(p: Profile | undefined, condition: string): Analy
     facts.push(`Triglycerides ${tg} mg/dL (${t}). Cut sugar, sweets, refined flour, large rice portions and alcohol.${tg >= 500 ? " Very low fat as well." : ""}`)
     out.topics.push("heart")
     if (tg >= 1000) out.urgent.push(`Your triglycerides (${tg} mg/dL) are **extremely high**, which can inflame the pancreas. Please contact Dr. Samanta soon; go to emergency if you get severe belly pain.`)
+  }
+
+  // Thyroid (ATA 2014: levothyroxine ~60 min before breakfast, consistently)
+  const thyroidCondition = /thyroid/i.test(condition)
+  if (tsh !== undefined) {
+    const t = tsh < 0.4 ? "low" : tsh <= 4.5 ? "within the usual range" : tsh <= 10 ? "raised" : "high"
+    lines.push(`TSH ${tsh} mIU/L — ${t}${tsh > 4.5 || tsh < 0.4 ? " (please discuss your thyroid dose with Dr. Samanta; never change it yourself)" : ""}`)
+    facts.push(`TSH ${tsh} mIU/L (${t}).${tsh > 4.5 ? " Thyroid is under-treated or untreated: weight-control portions, high-fibre foods for constipation, and advise reviewing the dose with the doctor (do not suggest a dose)." : tsh < 0.4 ? " TSH is low: advise reviewing the dose with the doctor (do not suggest a dose)." : ""}`)
+    out.topics.push("thyroid")
+  }
+  if (thyroidCondition || thyroxine) {
+    out.topics.push("thyroid")
+    facts.push(`Hypothyroidism${thyroxine ? ", on thyroxine (levothyroxine)" : ""}: ${thyroxine ? "in the Early morning row, first say to take the thyroid tablet with plain water on an empty stomach and wait about 60 minutes before tea, milk or breakfast; keep calcium or iron tablets and soy foods a few hours away from it. " : ""}Use iodised salt but stay within 5 g a day. Normal cooked portions of cabbage, cauliflower and broccoli are fine; no raw-goitrogen or 'thyroid cure' diets, no supplements (selenium/iodine tablets) unless the doctor advises. Weight-control portions and fibre for constipation.`)
+    if (thyroxine) lines.push("On thyroxine — the chart keeps the tablet on an empty stomach, about 60 minutes before breakfast")
   }
 
   // Kidney

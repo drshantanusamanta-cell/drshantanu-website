@@ -395,6 +395,7 @@
                                         <option value="heart health and high cholesterol">Heart / high cholesterol</option>
                                         <option value="healthy weight loss for an adult">Weight loss (adult)</option>
                                         <option value="chronic kidney disease (CKD)">Kidney disease (CKD)</option>
+                                        <option value="hypothyroidism">Hypothyroid (low thyroid)</option>
                                     </select>
                                 </label>
                                 <label class="text-[11px] text-slate-600">Food
@@ -427,44 +428,51 @@
                                 </summary>
                                 <div class="px-3 pb-3">
                                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        <label class="text-[11px] text-slate-600">Age (years)<input id="p-age" type="number" inputmode="numeric" min="1" max="110" step="1" placeholder="e.g. 52" class="diet-input mt-0.5"></label>
+                                        <label class="text-[11px] text-slate-600">Age (years)<input id="p-age" type="number" inputmode="numeric" min="1" max="110" step="any" placeholder="e.g. 52" class="diet-input mt-0.5"></label>
                                         <label class="text-[11px] text-slate-600">Sex<select id="p-sex" class="diet-select mt-0.5"><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select></label>
                                         <label class="text-[11px] text-slate-600">Activity<select id="p-activity" class="diet-select mt-0.5"><option value="">—</option><option value="sedentary">Mostly sitting</option><option value="moderate">Moderately active</option><option value="active">Very active / labour</option></select></label>
-                                        <label class="text-[11px] text-slate-600">Weight (kg)<input id="p-weight" type="number" inputmode="decimal" min="20" max="250" step="0.1" placeholder="e.g. 68" class="diet-input mt-0.5"></label>
-                                        <label class="text-[11px] text-slate-600">Height (cm)<input id="p-height" type="number" inputmode="decimal" min="100" max="230" step="0.1" placeholder="e.g. 162" class="diet-input mt-0.5"></label>
+                                        <label class="text-[11px] text-slate-600">Weight (kg)<input id="p-weight" type="number" inputmode="decimal" min="20" max="250" step="any" placeholder="e.g. 68" class="diet-input mt-0.5"></label>
+                                        <label class="text-[11px] text-slate-600">Height (cm)<input id="p-height" type="number" inputmode="decimal" min="100" max="230" step="any" placeholder="e.g. 162" class="diet-input mt-0.5"></label>
                                     </div>
                                     <div class="lab-group mt-3" data-group="diabetes">
                                         <p class="text-[11px] font-semibold text-slate-700 mb-1">Sugar reports</p>
                                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            <label class="text-[11px] text-slate-600">Fasting sugar (mg/dL)<input id="p-fbs" type="number" inputmode="decimal" min="20" max="800" step="1" placeholder="e.g. 130" class="diet-input mt-0.5"></label>
-                                            <label class="text-[11px] text-slate-600">After-meal sugar (mg/dL)<input id="p-ppbs" type="number" inputmode="decimal" min="20" max="900" step="1" placeholder="e.g. 190" class="diet-input mt-0.5"></label>
-                                            <label class="text-[11px] text-slate-600">HbA1c (%)<input id="p-hba1c" type="number" inputmode="decimal" min="3" max="20" step="0.1" placeholder="e.g. 7.8" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">Fasting sugar (mg/dL)<input id="p-fbs" type="number" inputmode="decimal" min="20" max="800" step="any" placeholder="e.g. 130" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">After-meal sugar (mg/dL)<input id="p-ppbs" type="number" inputmode="decimal" min="20" max="900" step="any" placeholder="e.g. 190" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">HbA1c (%)<input id="p-hba1c" type="number" inputmode="decimal" min="3" max="20" step="any" placeholder="e.g. 7.8" class="diet-input mt-0.5"></label>
                                         </div>
                                         <label class="mt-2 flex items-center gap-2 text-xs text-slate-700"><input id="p-insulin" type="checkbox" class="w-4 h-4 accent-sky-600"> I take insulin</label>
                                     </div>
                                     <div class="lab-group mt-3" data-group="bp">
                                         <p class="text-[11px] font-semibold text-slate-700 mb-1">Blood pressure</p>
                                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            <label class="text-[11px] text-slate-600">Upper (systolic)<input id="p-sbp" type="number" inputmode="numeric" min="60" max="300" step="1" placeholder="e.g. 150" class="diet-input mt-0.5"></label>
-                                            <label class="text-[11px] text-slate-600">Lower (diastolic)<input id="p-dbp" type="number" inputmode="numeric" min="30" max="200" step="1" placeholder="e.g. 95" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">Upper (systolic)<input id="p-sbp" type="number" inputmode="numeric" min="60" max="300" step="any" placeholder="e.g. 150" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">Lower (diastolic)<input id="p-dbp" type="number" inputmode="numeric" min="30" max="200" step="any" placeholder="e.g. 95" class="diet-input mt-0.5"></label>
                                         </div>
                                     </div>
                                     <div class="lab-group mt-3" data-group="heart">
                                         <p class="text-[11px] font-semibold text-slate-700 mb-1">Cholesterol report</p>
                                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            <label class="text-[11px] text-slate-600">LDL (mg/dL)<input id="p-ldl" type="number" inputmode="decimal" min="10" max="500" step="1" placeholder="e.g. 145" class="diet-input mt-0.5"></label>
-                                            <label class="text-[11px] text-slate-600">Triglycerides (mg/dL)<input id="p-tg" type="number" inputmode="decimal" min="10" max="5000" step="1" placeholder="e.g. 210" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">LDL (mg/dL)<input id="p-ldl" type="number" inputmode="decimal" min="10" max="500" step="any" placeholder="e.g. 145" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">Triglycerides (mg/dL)<input id="p-tg" type="number" inputmode="decimal" min="10" max="5000" step="any" placeholder="e.g. 210" class="diet-input mt-0.5"></label>
                                         </div>
                                     </div>
                                     <div class="lab-group mt-3" data-group="kidney">
                                         <p class="text-[11px] font-semibold text-slate-700 mb-1">Kidney reports</p>
                                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            <label class="text-[11px] text-slate-600">Urea (mg/dL)<input id="p-urea" type="number" inputmode="decimal" min="2" max="500" step="0.1" placeholder="e.g. 60" class="diet-input mt-0.5"></label>
-                                            <label class="text-[11px] text-slate-600">Creatinine (mg/dL)<input id="p-creatinine" type="number" inputmode="decimal" min="0.1" max="25" step="0.01" placeholder="e.g. 1.8" class="diet-input mt-0.5"></label>
-                                            <label class="text-[11px] text-slate-600">Potassium (mmol/L)<input id="p-potassium" type="number" inputmode="decimal" min="1.5" max="10" step="0.1" placeholder="e.g. 4.8" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">Urea (mg/dL)<input id="p-urea" type="number" inputmode="decimal" min="2" max="500" step="any" placeholder="e.g. 60" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">Creatinine (mg/dL)<input id="p-creatinine" type="number" inputmode="decimal" min="0.1" max="25" step="any" placeholder="e.g. 1.8" class="diet-input mt-0.5"></label>
+                                            <label class="text-[11px] text-slate-600">Potassium (mmol/L)<input id="p-potassium" type="number" inputmode="decimal" min="1.5" max="10" step="any" placeholder="e.g. 4.8" class="diet-input mt-0.5"></label>
                                         </div>
                                         <label class="mt-2 flex items-center gap-2 text-xs text-slate-700"><input id="p-dialysis" type="checkbox" class="w-4 h-4 accent-sky-600"> I am on dialysis</label>
                                         <p class="text-[10px] text-slate-500 mt-1">Add age and sex above to estimate kidney function (eGFR).</p>
+                                    </div>
+                                    <div class="lab-group mt-3" data-group="thyroid">
+                                        <p class="text-[11px] font-semibold text-slate-700 mb-1">Thyroid report</p>
+                                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            <label class="text-[11px] text-slate-600">TSH (mIU/L)<input id="p-tsh" type="number" inputmode="decimal" min="0.005" max="200" step="any" placeholder="e.g. 6.2" class="diet-input mt-0.5"></label>
+                                        </div>
+                                        <label class="mt-2 flex items-center gap-2 text-xs text-slate-700"><input id="p-thyroxine" type="checkbox" class="w-4 h-4 accent-sky-600"> I take a thyroid tablet (thyroxine)</label>
                                     </div>
                                     <p class="text-[10px] text-slate-500 mt-3"><i class="fa-solid fa-lock mr-1"></i>Used only to make this chart; not saved on this website. Leave blank anything you don't know.</p>
                                     <button id="diet-clear" type="button" class="mt-2 text-[11px] text-slate-500 underline">Clear my details</button>
@@ -592,10 +600,51 @@
         // Keep the fixed reference list out of what we send back to the AI as history
         const stripRefs = t => t.split(/\n-{3,}\n\*\*References?\*\*/)[0].trim();
 
+        const CHART_CSS = 'body{font-family:Inter,Arial,sans-serif;color:#1e293b;margin:28px;line-height:1.5}h1{font-size:18px;margin:0}p.sub{color:#64748b;margin:2px 0 16px;font-size:13px}table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 12px}th{background:#0284c7;color:#fff;text-align:left;padding:7px 9px}td{border:1px solid #cbd5e1;padding:7px 9px;vertical-align:top}a{color:#0369a1}.refs{font-size:12px;color:#475569}hr{border:0;border-top:1px solid #cbd5e1}.msg-actions{display:none}blockquote{background:#fef2f2;border-left:4px solid #dc2626;color:#7f1d1d;padding:6px 10px;margin:6px 0}td:first-child{font-weight:600;width:24%}tr,blockquote,li{page-break-inside:avoid;break-inside:avoid}ul{list-style:disc;padding-left:22px;margin:6px 0}ol{list-style:decimal;padding-left:22px;margin:6px 0}p{margin:6px 0}strong,b{font-weight:700}';
+        const CHART_HEAD = '<h1>Dr. Shantanu Samanta — Diet Chart</h1><p class="sub">Consultant General Physician, Kolkata · Appointments: 87775 68960 / 70444 31447 · drshantanusamanta.in · ' + new Date().toLocaleDateString('en-IN') + '</p>';
+
+        let pdfLib = null;
+        function loadPdfLib() {
+            if (window.html2pdf) return Promise.resolve();
+            if (pdfLib) return pdfLib;
+            pdfLib = new Promise((ok, fail) => {
+                const sc = document.createElement('script');
+                sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                sc.onload = ok; sc.onerror = () => { pdfLib = null; fail(new Error('load')); };
+                document.head.appendChild(sc);
+            });
+            return pdfLib;
+        }
+        async function downloadChart(el, btn) {
+            const label = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Making PDF…';
+            const box = document.createElement('div');
+            box.style.cssText = 'width:700px;background:#fff';
+            // scope every rule to the PDF box so the page itself never changes
+            const scoped = CHART_CSS.replace(/(^|})([^{}]+)\{/g, (m, a, sel) => a + sel.split(',').map(x => x.trim() === 'body' ? '.pdf-root' : '.pdf-root ' + x.trim()).join(',') + '{');
+            box.innerHTML = '<style>' + scoped + '.pdf-root{margin:0;padding:4px}</style><div class="pdf-root">' + CHART_HEAD + el.innerHTML + '</div>';
+            try {
+                await loadPdfLib();
+                await window.html2pdf().set({
+                    margin: [10, 10, 12, 10],
+                    filename: 'Diet-chart-Dr-Shantanu-Samanta.pdf',
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { mode: ['css', 'legacy'], avoid: ['tr', 'blockquote', 'li'] }
+                }).from(box).save(); // detached copy: the library renders it in its own hidden layer
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Downloaded';
+            } catch (e) {
+                btn.innerHTML = 'Download failed — use Print';
+            } finally {
+                setTimeout(() => { btn.innerHTML = label; btn.disabled = false; }, 2500);
+            }
+        }
+
         function printChart(el) {
             const w = window.open('', '_blank');
             if (!w) { alert('Please allow pop-ups to print the chart.'); return; }
-            w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Diet chart - Dr. Shantanu Samanta</title><style>body{font-family:Inter,Arial,sans-serif;color:#1e293b;margin:28px;line-height:1.5}h1{font-size:18px;margin:0}p.sub{color:#64748b;margin:2px 0 16px;font-size:13px}table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0 12px}th{background:#0284c7;color:#fff;text-align:left;padding:7px 9px}td{border:1px solid #cbd5e1;padding:7px 9px;vertical-align:top}a{color:#0369a1}.refs{font-size:12px;color:#475569}hr{border:0;border-top:1px solid #cbd5e1}.msg-actions{display:none}blockquote{background:#fef2f2;border-left:4px solid #dc2626;color:#7f1d1d;padding:6px 10px;margin:6px 0}td:first-child{font-weight:600;width:24%}</style></head><body><h1>Dr. Shantanu Samanta — Diet Chart</h1><p class="sub">Consultant General Physician, Kolkata · Appointments: 87775 68960 / 70444 31447 · drshantanusamanta.in</p>' + el.innerHTML + '</body></html>');
+            w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Diet chart - Dr. Shantanu Samanta</title><style>' + CHART_CSS + '</style></head><body>' + CHART_HEAD + el.innerHTML + '</body></html>');
             w.document.close(); w.focus(); setTimeout(() => w.print(), 300);
         }
 
@@ -607,9 +656,11 @@
                 catch (e) { copy.textContent = 'Copy failed'; }
                 setTimeout(() => copy.innerHTML = '<i class="fa-regular fa-copy"></i> Copy', 1800);
             };
+            const dl = document.createElement('button'); dl.type = 'button'; dl.innerHTML = '<i class="fa-solid fa-file-arrow-down"></i> Download PDF';
+            dl.onclick = () => downloadChart(div, dl);
             const pr = document.createElement('button'); pr.type = 'button'; pr.innerHTML = '<i class="fa-solid fa-print"></i> Print';
             pr.onclick = () => printChart(div);
-            bar.append(copy, pr); div.appendChild(bar);
+            bar.append(dl, pr, copy); div.appendChild(bar);
         }
 
         function appendMessage(text, sender) {
@@ -736,6 +787,7 @@
             'diabetes and high blood pressure': ['diabetes', 'bp'],
             'heart health and high cholesterol': ['heart', 'bp'],
             'chronic kidney disease (CKD)': ['kidney', 'bp', 'diabetes'],
+            'hypothyroidism': ['thyroid'],
         };
         const condSel = document.getElementById('diet-condition');
         function showGroups() {
@@ -745,7 +797,8 @@
         condSel.addEventListener('change', showGroups);
         showGroups();
 
-        const FIELDS = ['age', 'sex', 'activity', 'weight', 'height', 'fbs', 'ppbs', 'hba1c', 'sbp', 'dbp', 'ldl', 'tg', 'urea', 'creatinine', 'potassium'];
+        const FIELDS = ['age', 'sex', 'activity', 'weight', 'height', 'fbs', 'ppbs', 'hba1c', 'sbp', 'dbp', 'ldl', 'tg', 'urea', 'creatinine', 'potassium', 'tsh'];
+        const CHECKS = ['insulin', 'dialysis', 'thyroxine'];
         function readProfile() {
             const p = {}; let bad = null;
             const visible = el => !el.closest('.lab-group') || !el.closest('.lab-group').hidden;
@@ -757,7 +810,7 @@
                     p[f] = parseFloat(el.value);
                 } else p[f] = el.value;
             });
-            ['insulin', 'dialysis'].forEach(f => { const el = document.getElementById('p-' + f); if (el && visible(el) && el.checked) p[f] = true; });
+            CHECKS.forEach(f => { const el = document.getElementById('p-' + f); if (el && visible(el) && el.checked) p[f] = true; });
             return { p, bad };
         }
         function profileLabel(p) {
@@ -770,6 +823,8 @@
             if (p.ldl) bits.push('LDL ' + p.ldl);
             if (p.creatinine) bits.push('Creat ' + p.creatinine);
             if (p.potassium) bits.push('K ' + p.potassium);
+            if (p.tsh) bits.push('TSH ' + p.tsh);
+            if (p.thyroxine) bits.push('on thyroxine');
             if (p.dialysis) bits.push('on dialysis');
             if (p.insulin) bits.push('on insulin');
             return bits.length ? ' · ' + bits.join(', ') : '';
@@ -800,7 +855,7 @@
         }
         document.getElementById('diet-clear').addEventListener('click', () => {
             FIELDS.forEach(f => { const el = document.getElementById('p-' + f); if (el) el.value = ''; });
-            ['insulin', 'dialysis'].forEach(f => { document.getElementById('p-' + f).checked = false; });
+            CHECKS.forEach(f => { document.getElementById('p-' + f).checked = false; });
             dietErr.classList.add('hidden');
         });
         document.getElementById('diet-make').addEventListener('click', () => makeDietChart());

@@ -19,7 +19,7 @@ Diet charts and dietary advice:
 - Do not give calorie targets below 1200 kcal a day, crash or fad diets, fasting plans, or supplements.
 - In ordinary chat, for kidney disease, liver disease, pregnancy, children, people on insulin, or anyone very unwell: give only general healthy-eating tips, say the plan must be made individually by Dr. Samanta or a dietitian, and mention they can use the Diet chart button with their weight and reports for a better-tuned sample chart.
 - If the user mentions an eating disorder, extreme restriction, binge-purge behaviour or wanting to lose weight very fast: do not give a chart, calorie or weight numbers; respond with care and suggest talking to a doctor.
-- Add this line at the very end of any reply that contains diet advice or a diet chart, and only then: TOPICS: followed by one or more of general, diabetes, hypertension, heart, weight, kidney (comma-separated). Example: TOPICS: general, diabetes
+- Add this line at the very end of any reply that contains diet advice or a diet chart, and only then: TOPICS: followed by one or more of general, diabetes, hypertension, heart, weight, kidney, thyroid (comma-separated). Example: TOPICS: general, diabetes
 - End diet charts with: "This is a general sample chart. Your exact needs depend on your health, medicines and activity, so please review it with Dr. Samanta."`
 
 const CHAT_PROMPT = `You are the AI wellness assistant on the website of Dr. Shantanu Samanta, a Consultant General Physician in Kolkata with special interest in Cardiology, Diabetes and Critical Care.
@@ -52,6 +52,7 @@ Using the patient's details and reports (when provided):
 - Follow the "Patient details" given with the request exactly. Use them to set portion sizes (more cereal if underweight or active, less if overweight/obese or sedentary) and food choices.
 - Diabetes: steady carbohydrate at each meal; high sugars or HbA1c above 7% → smaller rice/roti portions, more vegetables, millets/whole grains, no sweets or juices. On insulin: fixed meal times, never skip meals, include a bedtime snack.
 - Kidney disease (CKD): keep protein within the stated daily target, spread across meals; salt under 5 g a day and no salt substitutes; limit phosphorus (colas, packaged and processed foods, processed cheese); if potassium is high use only low-potassium vegetables and fruits and explain leaching (cut, soak, boil, discard water). Do not set a fluid limit unless on dialysis — then say to follow the nephrologist's fluid advice. Say the plan should be confirmed by Dr. Samanta or a renal dietitian.
+- Hypothyroidism: if on thyroxine, the Early morning row starts with taking the tablet with plain water on an empty stomach and waiting about 60 minutes before tea, milk or breakfast; keep calcium/iron tablets and soy a few hours away. Use iodised salt within the 5 g limit; normal cooked cabbage/cauliflower are fine; weight-control portions and fibre. Never suggest a thyroid dose or supplements.
 - If the details say the person is under 18, pregnant, or has liver disease: give only general healthy-eating tips without a restricted chart, and say the plan must come from the doctor.`
 
 // Fixed, verified references appended by the server (never written by the AI).
@@ -64,6 +65,7 @@ const REFS: Record<string, string> = {
   kdigo: "[Kidney Disease: Improving Global Outcomes (KDIGO) CKD Work Group. KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease. *Kidney Int*. 2024;105(4S):S117–S314.](https://doi.org/10.1016/j.kint.2023.10.018)",
   kdoqi: "[Ikizler TA, Burrowes JD, Byham-Gray LD, et al. KDOQI Clinical Practice Guideline for Nutrition in CKD: 2020 Update. *Am J Kidney Dis*. 2020;76(3 Suppl 1):S1–S107.](https://doi.org/10.1053/j.ajkd.2020.05.006)",
   inker: "[Inker LA, Eneanya ND, Coresh J, et al. New Creatinine- and Cystatin C–Based Equations to Estimate GFR without Race. *N Engl J Med*. 2021;385(19):1737–1749.](https://doi.org/10.1056/NEJMoa2102953)",
+  ata: "[Jonklaas J, Bianco AC, Bauer AJ, et al. Guidelines for the Treatment of Hypothyroidism: Prepared by the American Thyroid Association Task Force on Thyroid Hormone Replacement. *Thyroid*. 2014;24(12):1670–1751.](https://doi.org/10.1089/thy.2014.0028)",
   misra: "[Misra A, Vikram NK, et al. Revised definition of obesity in Asian Indians living in India. *Diabetes Metab Syndr*. 2025;19:102989.](https://doi.org/10.1016/j.dsx.2024.102989)",
 }
 const TOPIC_REFS: Record<string, string[]> = {
@@ -75,6 +77,7 @@ const TOPIC_REFS: Record<string, string[]> = {
   kidney: ["icmr", "kdigo", "kdoqi"],
   egfr: ["inker"],
   bmi: ["misra"],
+  thyroid: ["icmr", "ata"],
 }
 
 function withReferences(text: string, mode: string, extraTopics: string[] = []): string {
