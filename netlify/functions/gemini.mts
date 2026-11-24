@@ -5,7 +5,14 @@ import type { Config, Context } from "@netlify/functions"
 // (scope must include Functions). It is never sent to the browser.
 // Optional: GEMINI_MODEL to pin a model (default: gemini-3.5-flash-lite).
 
+import { getStore } from "@netlify/blobs"
 import { analyzeProfile } from "../lib/diet-profile.mts"
+import { standardChart } from "../lib/standard-chart.mts"
+
+// Bump when the diet prompt changes, so old saved charts are not reused.
+const DIET_CACHE_VERSION = "v2"
+const sha256 = async (t: string) =>
+  [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t)))].map((b) => b.toString(16).padStart(2, "0")).join("")
 
 type Turn = { role: "user" | "model"; text: string }
 
@@ -42,10 +49,10 @@ ${DIET_RULES}
 FORMAT FOR THIS DIET-CHART TOOL (this replaces the single-option table format above):
 - Start directly with a one-line title, then the table. A summary of the patient's numbers is added separately by the website, so do not repeat or recalculate BMI, eGFR, protein grams or lab values.
 - The table has 2 columns: | Time & meal | Choose any ONE of these 4 options (portion) |. Rows: Early morning, Breakfast, Mid-morning, Lunch, Evening snack, Dinner, and Bedtime (include Bedtime when on insulin or underweight, otherwise only if useful). Put a usual time in the first column, e.g. "Breakfast (8–9 am)".
-- In every second-column cell give EXACTLY 4 numbered options on separate lines using <br>, like: 1. … <br>2. … <br>3. … <br>4. … Each option is one short line with household portions. Never use a | character inside a cell.
+- In every second-column cell give EXACTLY 4 numbered options on separate lines using <br>, like: 1. … <br>2. … <br>3. … <br>4. … Each option is one short line of at most 12 words with household portions. Never use a | character inside a cell.
 - The 4 options in a row must be interchangeable (similar amount of cereal/carbohydrate and protein), clearly different from each other, and suit the food preference and regional style.
 - Lunch and dinner options are full plates (e.g. rice/roti + dal or fish/egg/chicken/paneer + sabzi/shak + salad) in sensible amounts.
-- After the table give at most 5 short bullet tips that are specific to the patient's details and reports (if given).
+- After the table give at most 4 short bullet tips (one line each) that are specific to the patient's details and reports (if given).
 - Then the review line, then the TOPICS line.
 
 Using the patient's details and reports (when provided):
@@ -119,7 +126,7 @@ export default async (req: Request, _context: Context) => {
     return json({ error: "The AI assistant is not configured yet. Please try again later." }, 503)
   }
 
-  let payload: { mode?: string; messages?: Turn[]; profile?: Record<string, unknown>; condition?: string }
+  let payload: { mode?: string; messages?: Turn[]; profile?: Record<string, unknown>; condition?: string; food?: string; style?: string; lang?: string }
   try {
     payload = await req.json()
   } catch {
@@ -151,20 +158,43 @@ export default async (req: Request, _context: Context) => {
   // Diet charts with 4 options per meal are longer, so they get more time per attempt.
   const long = mode === "diet"
   const attempts: [string, number][] = [
-    ...(preferred ? [[preferred, long ? 20 : 12] as [string, number]] : []),
-    ["gemini-3.5-flash-lite", long ? 18 : 10],
-    ["gemini-3.1-flash-lite", long ? 14 : 8],
-    ["gemini-3.5-flash-lite", long ? 12 : 8],
-    ["gemini-3.6-flash", long ? 18 : 12],
+    ...(preferred ? [[preferred, long ? 22 : 12] as [string, number]] : []),
+    ["gemini-3.5-flash-lite", long ? 22 : 10],
+    ["gemini-3.1-flash-lite", long ? 16 : 8],
+    ["gemini-3.5-flash-lite", long ? 14 : 8],
+    ["gemini-3.6-flash", long ? 16 : 12],
   ]
+
+  // Diet charts: put together the final reply (warnings + details + chart + references)
+  const finishDiet = (chartText: string, extra: Record<string, unknown> = {}) => {
+    let reply = withReferences(chartText, mode, analysis?.topics ?? [])
+    const head = [...(analysis?.urgent ?? []).map((u) => `> ⚠️ ${u}`), analysis?.summary ?? ""].filter(Boolean).join("\n\n")
+    if (head) reply = `${head}\n\n${reply}`
+    return json({ reply, ...extra })
+  }
+
+  // Saved charts: identical requests are answered instantly, even when Google is busy.
+  let store: ReturnType<typeof getStore> | undefined
+  let cacheKey = ""
+  if (long) {
+    try {
+      store = getStore("diet-charts")
+      cacheKey = await sha256(`${DIET_CACHE_VERSION}|${messages[messages.length - 1].text}`)
+      const hit = await store.get(cacheKey)
+      if (hit) return finishDiet(hit, { model: "saved", cached: true })
+    } catch (e) {
+      console.error("diet cache read failed", String(e).slice(0, 120))
+      store = undefined
+    }
+  }
 
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: mode === "simplify" ? SIMPLIFY_PROMPT : mode === "diet" ? DIET_PROMPT : CHAT_PROMPT }] },
     contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-    generationConfig: { temperature: mode === "chat" ? 0.6 : 0.3, maxOutputTokens: long ? 4096 : 2048 },
+    generationConfig: { temperature: mode === "chat" ? 0.6 : 0.3, maxOutputTokens: long ? 3072 : 2048 },
   })
 
-  const deadline = Date.now() + (long ? 35000 : 25000)
+  const deadline = Date.now() + (long ? 45000 : 25000)
   const RETRYABLE = new Set([404, 408, 429, 500, 502, 503, 504])
   let lastStatus = 0
   let lastDetail = ""
@@ -189,7 +219,10 @@ export default async (req: Request, _context: Context) => {
         lastStatus = res.status
         lastDetail = `${model}: ${res.status} ${data?.error?.status ?? ""} ${String(data?.error?.message ?? "").slice(0, 160)}`.trim()
         console.error("Gemini error", lastDetail)
-        if (RETRYABLE.has(res.status)) continue
+        if (RETRYABLE.has(res.status)) {
+          if (long) await new Promise((r) => setTimeout(r, 1500)) // a short pause helps when Google is overloaded
+          continue
+        }
         break // e.g. 400/401/403: bad request or key problem, other models won't help
       }
 
@@ -207,14 +240,14 @@ export default async (req: Request, _context: Context) => {
             : "Sorry, I couldn't generate a reply. Please rephrase your question.",
         })
       }
-      let reply = mode === "simplify" ? text : withReferences(text, mode, analysis?.topics ?? [])
-      if (analysis) {
-        const head = [
-          ...analysis.urgent.map((u) => `> ⚠️ ${u}`),
-          analysis.summary,
-        ].filter(Boolean).join("\n\n")
-        if (head) reply = `${head}\n\n${reply}`
+      if (long) {
+        // save complete-looking charts only (a table and a TOPICS line or the review line)
+        if (store && cacheKey && text.includes("|") && /TOPICS|review/i.test(text)) {
+          try { await store.set(cacheKey, text) } catch (e) { console.error("diet cache write failed", String(e).slice(0, 120)) }
+        }
+        return finishDiet(text, { model })
       }
+      const reply = mode === "simplify" ? text : withReferences(text, mode)
       return json({ reply, model })
     } catch (e: any) {
       clearTimeout(timer)
@@ -222,6 +255,23 @@ export default async (req: Request, _context: Context) => {
       console.error("Gemini fetch failed", lastDetail)
       // a timeout on one model: move on to the next while time remains
     }
+  }
+
+  // Diet chart and Google is busy: give the built-in standard chart instead of an error.
+  if (long) {
+    const std = standardChart({
+      condition: String(payload.condition ?? ""),
+      food: String(payload.food ?? ""),
+      style: String(payload.style ?? ""),
+      profile: analysis?.child ? undefined : payload.profile,
+      bmi: analysis?.bmi,
+    })
+    if (analysis?.child) {
+      return finishDiet(`_Google's AI is busy right now._\n\nFor children and teenagers, Dr. Samanta prefers to plan the diet personally. Meanwhile: three regular meals and two healthy snacks, plenty of vegetables, fruit, dal, milk or curd, eggs or fish if eaten, whole grains, and no soft drinks, packaged snacks or fried food every day. Please book a consultation (87775 68960 / 70444 31447).\n\nTOPICS: general`, { model: "standard", fallback: true })
+    }
+    const langNote = payload.lang && payload.lang !== "English" ? " It is shown in English." : ""
+    const note = `_Google's AI is busy right now, so here is Dr. Samanta's **standard chart**, built from the same guidelines and your details.${langNote} Tap the **Try AI again** button below in a minute for a personalised version._`
+    return finishDiet(`${note}\n\n${std.text}\n\nTOPICS: ${std.topics.join(", ")}`, { model: "standard", fallback: true, detail: lastDetail })
   }
 
   const msg =

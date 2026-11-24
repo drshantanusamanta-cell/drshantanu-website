@@ -663,6 +663,16 @@
             bar.append(dl, pr, copy); div.appendChild(bar);
         }
 
+        // On a standard (fallback) chart: let the patient ask the AI again later
+        function addRetry(div, text, opts) {
+            const bar = div.querySelector('.msg-actions') || div.appendChild(Object.assign(document.createElement('div'), { className: 'msg-actions' }));
+            const b = document.createElement('button'); b.type = 'button';
+            b.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Try AI again';
+            b.style.borderColor = '#0284c7'; b.style.color = '#0369a1';
+            b.onclick = () => { if (busy) return; b.disabled = true; sendChatMessage(text, Object.assign({}, opts, { shown: '🔁 Try the AI again for the same chart' })); };
+            bar.prepend(b);
+        }
+
         function appendMessage(text, sender) {
             const div = document.createElement('div');
             div.className = 'chat-bubble ' + (sender === 'user' ? 'user-msg' : 'ai-msg prose');
@@ -697,7 +707,7 @@
                 return ask(mode, messages, true, extra);
             }
             if (!res.ok || data.error) throw new Error(data.error || 'The assistant is unavailable right now. Please try again later.');
-            return data.reply;
+            return data;
         }
 
         async function sendChatMessage(preset, opts) {
@@ -713,7 +723,7 @@
             const loading = document.createElement('div');
             if (opts.mode === 'diet') {
                 loading.className = 'chat-bubble ai-msg text-sm text-slate-500';
-                loading.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Preparing your chart with 4 options per meal… this can take up to 20 seconds.';
+                loading.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Preparing your chart with 4 options per meal… this can take up to 45 seconds when the AI is busy.';
             } else {
                 loading.className = 'chat-bubble ai-msg typing-indicator';
             }
@@ -722,10 +732,12 @@
 
             try {
                 const mode = opts.mode || 'chat';
-                const reply = await ask(mode, mode === 'diet' ? [{ role: 'user', text }] : turns, false, opts.extra);
+                const data = await ask(mode, mode === 'diet' ? [{ role: 'user', text }] : turns, false, opts.extra);
+                const reply = data.reply;
                 turns.push({ role: 'model', text: stripRefs(reply) });
                 loading.remove();
-                appendMessage(reply, 'ai');
+                const div = appendMessage(reply, 'ai');
+                if (data.fallback && mode === 'diet') addRetry(div, text, opts);
             } catch (e) {
                 turns.pop();
                 loading.remove();
@@ -755,7 +767,7 @@
             btn.disabled = true;
             btn.classList.add('opacity-75', 'cursor-not-allowed');
             try {
-                const reply = await ask('simplify', [{ role: 'user', text: input }]);
+                const reply = (await ask('simplify', [{ role: 'user', text: input }])).reply;
                 outputContainer.classList.remove('hidden');
                 output.innerHTML = render(reply);
                 outputContainer.scrollTop = 0;
@@ -849,7 +861,7 @@
             setDiet(false);
             sendChatMessage(prompt, {
                 mode: 'diet',
-                extra: { profile: p, condition: cond },
+                extra: { profile: p, condition: cond, food, style, lang },
                 shown: `🍽️ Diet chart · ${condLabel} · ${food.split(' (')[0]} · ${style} · ${langLabel}${profileLabel(p)}`
             });
         }

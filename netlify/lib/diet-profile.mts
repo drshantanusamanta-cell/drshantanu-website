@@ -15,6 +15,7 @@ export type Analysis = {
   urgent: string[] // markdown lines, shown first
   topics: string[] // reference topics
   child: boolean
+  bmi?: number
 }
 
 const num = (v: unknown, min: number, max: number): number | undefined => {
@@ -92,6 +93,7 @@ export function analyzeProfile(p: Profile | undefined, condition: string): Analy
     else if (bmi < 25) { cat = "overweight range for Indians"; advice = "overweight: slightly smaller cereal/rice portions for gentle weight loss" }
     else { cat = "obesity range for Indians"; advice = "obesity: smaller cereal/rice portions, more vegetables and salad, no fried snacks, for gradual weight loss of about 0.5 kg a week" }
     if (bmi >= 25) refWeight = 23 * Math.pow(height / 100, 2)
+    out.bmi = bmi
     lines.push(`**BMI ${r1(bmi)}** — ${cat} (Indian cut-offs: healthy 18.5–22.9)`)
     facts.push(`BMI ${r1(bmi)} (${cat}). Tune portions for ${advice}.`)
     out.topics.push("bmi")
