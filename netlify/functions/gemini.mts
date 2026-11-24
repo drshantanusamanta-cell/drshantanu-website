@@ -5,6 +5,8 @@ import type { Config, Context } from "@netlify/functions"
 // (scope must include Functions). It is never sent to the browser.
 // Optional: GEMINI_MODEL to pin a model (default: gemini-3.5-flash-lite).
 
+import { analyzeProfile } from "../lib/diet-profile.mts"
+
 type Turn = { role: "user" | "model"; text: string }
 
 const DIET_RULES = `
@@ -15,9 +17,9 @@ Diet charts and dietary advice:
 - Keep advice consistent with the ICMR-NIN Dietary Guidelines for Indians (2024): salt not more than 5 g a day (about 1 level teaspoon); avoid added sugar or keep it within 20–25 g a day; plenty of vegetables and green leafy vegetables (about 400 g a day) plus a fruit; whole grains and millets instead of refined flour; pulses, curd/milk, nuts and seeds daily; about 5–6 teaspoons of cooking oil a day in total; avoid ultra-processed and fried foods.
 - Diabetes: steady carbohydrate portions spread through the day, half plate vegetables, quarter plate whole grains, quarter plate protein (dal, paneer, egg, fish, chicken); no fruit juices or sweets. High blood pressure: DASH-style eating, low salt, avoid pickles, papad, chips and packaged foods. Heart / cholesterol: less saturated fat (ghee, butter, red meat, fried food), more fish, nuts, whole grains and fibre.
 - Do not give calorie targets below 1200 kcal a day, crash or fad diets, fasting plans, or supplements.
-- For kidney disease, liver disease, pregnancy, children, people on insulin, or anyone very unwell: give only general healthy-eating tips and say the plan must be made individually by Dr. Samanta or a dietitian.
+- In ordinary chat, for kidney disease, liver disease, pregnancy, children, people on insulin, or anyone very unwell: give only general healthy-eating tips, say the plan must be made individually by Dr. Samanta or a dietitian, and mention they can use the Diet chart button with their weight and reports for a better-tuned sample chart.
 - If the user mentions an eating disorder, extreme restriction, binge-purge behaviour or wanting to lose weight very fast: do not give a chart, calorie or weight numbers; respond with care and suggest talking to a doctor.
-- Add this line at the very end of any reply that contains diet advice or a diet chart, and only then: TOPICS: followed by one or more of general, diabetes, hypertension, heart, weight (comma-separated). Example: TOPICS: general, diabetes
+- Add this line at the very end of any reply that contains diet advice or a diet chart, and only then: TOPICS: followed by one or more of general, diabetes, hypertension, heart, weight, kidney (comma-separated). Example: TOPICS: general, diabetes
 - End diet charts with: "This is a general sample chart. Your exact needs depend on your health, medicines and activity, so please review it with Dr. Samanta."`
 
 const CHAT_PROMPT = `You are the AI wellness assistant on the website of Dr. Shantanu Samanta, a Consultant General Physician in Kolkata with special interest in Cardiology, Diabetes and Critical Care.
@@ -32,10 +34,25 @@ How to respond:
 - Remind users briefly, when relevant, that you are an AI and not a substitute for a doctor's consultation.
 ${DIET_RULES}`
 
-const DIET_PROMPT = `You are the diet-chart assistant on the website of Dr. Shantanu Samanta, a Consultant General Physician in Kolkata with special interest in Cardiology, Diabetes and Critical Care. You make short, practical, general sample diet charts for patients.
-- Reply in the language requested (English, Bengali or Hindi). In Bengali or Hindi, keep the table headings in that language too.
-- Never prescribe medicines or doses and never advise changing prescribed medicines.
-${DIET_RULES}`
+const DIET_PROMPT = `You are the diet-chart assistant on the website of Dr. Shantanu Samanta, a Consultant General Physician in Kolkata with special interest in Cardiology, Diabetes and Critical Care. You make practical sample diet charts for adult patients, tuned to any details and reports they give.
+- Reply in the language requested (English, Bengali or Hindi). In Bengali or Hindi, write the table headings and meal names in that language too.
+- Never prescribe medicines or doses and never advise changing prescribed medicines or insulin.
+${DIET_RULES}
+
+FORMAT FOR THIS DIET-CHART TOOL (this replaces the single-option table format above):
+- Start directly with a one-line title, then the table. A summary of the patient's numbers is added separately by the website, so do not repeat or recalculate BMI, eGFR, protein grams or lab values.
+- The table has 2 columns: | Time & meal | Choose any ONE of these 4 options (portion) |. Rows: Early morning, Breakfast, Mid-morning, Lunch, Evening snack, Dinner, and Bedtime (include Bedtime when on insulin or underweight, otherwise only if useful). Put a usual time in the first column, e.g. "Breakfast (8–9 am)".
+- In every second-column cell give EXACTLY 4 numbered options on separate lines using <br>, like: 1. … <br>2. … <br>3. … <br>4. … Each option is one short line with household portions. Never use a | character inside a cell.
+- The 4 options in a row must be interchangeable (similar amount of cereal/carbohydrate and protein), clearly different from each other, and suit the food preference and regional style.
+- Lunch and dinner options are full plates (e.g. rice/roti + dal or fish/egg/chicken/paneer + sabzi/shak + salad) in sensible amounts.
+- After the table give at most 5 short bullet tips that are specific to the patient's details and reports (if given).
+- Then the review line, then the TOPICS line.
+
+Using the patient's details and reports (when provided):
+- Follow the "Patient details" given with the request exactly. Use them to set portion sizes (more cereal if underweight or active, less if overweight/obese or sedentary) and food choices.
+- Diabetes: steady carbohydrate at each meal; high sugars or HbA1c above 7% → smaller rice/roti portions, more vegetables, millets/whole grains, no sweets or juices. On insulin: fixed meal times, never skip meals, include a bedtime snack.
+- Kidney disease (CKD): keep protein within the stated daily target, spread across meals; salt under 5 g a day and no salt substitutes; limit phosphorus (colas, packaged and processed foods, processed cheese); if potassium is high use only low-potassium vegetables and fruits and explain leaching (cut, soak, boil, discard water). Do not set a fluid limit unless on dialysis — then say to follow the nephrologist's fluid advice. Say the plan should be confirmed by Dr. Samanta or a renal dietitian.
+- If the details say the person is under 18, pregnant, or has liver disease: give only general healthy-eating tips without a restricted chart, and say the plan must come from the doctor.`
 
 // Fixed, verified references appended by the server (never written by the AI).
 const REFS: Record<string, string> = {
@@ -44,6 +61,10 @@ const REFS: Record<string, string> = {
   ada: "[American Diabetes Association. 5. Facilitating Positive Health Behaviors and Well-being: *Standards of Care in Diabetes—2026*. *Diabetes Care*. 2026;49(Suppl 1):S89–S131.](https://doi.org/10.2337/dc26-S005)",
   dash: "[National Heart, Lung, and Blood Institute (NIH). *DASH Eating Plan: Healthy Eating, Proven Results*. 2020.](https://www.nhlbi.nih.gov/resources/dash-eating-plan-healthy-eating-proven-results)",
   aha: "[Lichtenstein AH, Appel LJ, et al. 2021 Dietary Guidance to Improve Cardiovascular Health: A Scientific Statement From the American Heart Association. *Circulation*. 2021;144:e472–e487.](https://doi.org/10.1161/CIR.0000000000001031)",
+  kdigo: "[Kidney Disease: Improving Global Outcomes (KDIGO) CKD Work Group. KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease. *Kidney Int*. 2024;105(4S):S117–S314.](https://doi.org/10.1016/j.kint.2023.10.018)",
+  kdoqi: "[Ikizler TA, Burrowes JD, Byham-Gray LD, et al. KDOQI Clinical Practice Guideline for Nutrition in CKD: 2020 Update. *Am J Kidney Dis*. 2020;76(3 Suppl 1):S1–S107.](https://doi.org/10.1053/j.ajkd.2020.05.006)",
+  inker: "[Inker LA, Eneanya ND, Coresh J, et al. New Creatinine- and Cystatin C–Based Equations to Estimate GFR without Race. *N Engl J Med*. 2021;385(19):1737–1749.](https://doi.org/10.1056/NEJMoa2102953)",
+  misra: "[Misra A, Vikram NK, et al. Revised definition of obesity in Asian Indians living in India. *Diabetes Metab Syndr*. 2025;19:102989.](https://doi.org/10.1016/j.dsx.2024.102989)",
 }
 const TOPIC_REFS: Record<string, string[]> = {
   general: ["icmr"],
@@ -51,9 +72,12 @@ const TOPIC_REFS: Record<string, string[]> = {
   diabetes: ["icmr", "rssdi", "ada"],
   hypertension: ["icmr", "dash"],
   heart: ["icmr", "aha"],
+  kidney: ["icmr", "kdigo", "kdoqi"],
+  egfr: ["inker"],
+  bmi: ["misra"],
 }
 
-function withReferences(text: string, mode: string): string {
+function withReferences(text: string, mode: string, extraTopics: string[] = []): string {
   const m = text.match(/^[ \t*_]*TOPICS?\s*:\s*(.+)$/im)
   let body = text.replace(/^[ \t*_]*TOPICS?\s*:.*$/gim, "").trim()
   let topics = m
@@ -61,6 +85,7 @@ function withReferences(text: string, mode: string): string {
     : []
   if (!topics.length && mode === "diet") topics = ["general"]
   if (!topics.length) return body
+  topics = [...topics, ...extraTopics]
   const keys = [...new Set(topics.flatMap((t) => TOPIC_REFS[t]))]
   const label = keys.length > 1 ? "References" : "Reference"
   return `${body}\n\n---\n**${label}** (standard guidelines this advice follows):\n${keys.map((k, i) => `${i + 1}. ${REFS[k]}`).join("\n")}`
@@ -91,7 +116,7 @@ export default async (req: Request, _context: Context) => {
     return json({ error: "The AI assistant is not configured yet. Please try again later." }, 503)
   }
 
-  let payload: { mode?: string; messages?: Turn[] }
+  let payload: { mode?: string; messages?: Turn[]; profile?: Record<string, unknown>; condition?: string }
   try {
     payload = await req.json()
   } catch {
@@ -109,25 +134,34 @@ export default async (req: Request, _context: Context) => {
     return json({ error: "Please type a message first." }, 400)
   }
 
+  // Diet-chart tool: checked numbers and facts from the optional details (computed here, not by the AI)
+  const analysis = mode === "diet" ? analyzeProfile(payload.profile, String(payload.condition ?? "")) : undefined
+  if (analysis?.facts) {
+    const last = messages[messages.length - 1]
+    last.text = `${last.text}\n\n${analysis.facts}`
+  }
+
   // Try models in order; when Google says a model is busy/overloaded, move to the next one.
   const preferred = Netlify.env.get("GEMINI_MODEL")
   // [model, max seconds for this attempt]. Lite models are fastest; Flash-Lite gets a second try
   // because Google's "high demand" 503s are usually brief.
+  // Diet charts with 4 options per meal are longer, so they get more time per attempt.
+  const long = mode === "diet"
   const attempts: [string, number][] = [
-    ...(preferred ? [[preferred, 12] as [string, number]] : []),
-    ["gemini-3.5-flash-lite", 10],
-    ["gemini-3.1-flash-lite", 8],
-    ["gemini-3.5-flash-lite", 8],
-    ["gemini-3.6-flash", 12],
+    ...(preferred ? [[preferred, long ? 20 : 12] as [string, number]] : []),
+    ["gemini-3.5-flash-lite", long ? 18 : 10],
+    ["gemini-3.1-flash-lite", long ? 14 : 8],
+    ["gemini-3.5-flash-lite", long ? 12 : 8],
+    ["gemini-3.6-flash", long ? 18 : 12],
   ]
 
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: mode === "simplify" ? SIMPLIFY_PROMPT : mode === "diet" ? DIET_PROMPT : CHAT_PROMPT }] },
     contents: messages.map((m) => ({ role: m.role, parts: [{ text: m.text }] })),
-    generationConfig: { temperature: mode === "chat" ? 0.6 : 0.3, maxOutputTokens: 2048 },
+    generationConfig: { temperature: mode === "chat" ? 0.6 : 0.3, maxOutputTokens: long ? 4096 : 2048 },
   })
 
-  const deadline = Date.now() + 25000
+  const deadline = Date.now() + (long ? 35000 : 25000)
   const RETRYABLE = new Set([404, 408, 429, 500, 502, 503, 504])
   let lastStatus = 0
   let lastDetail = ""
@@ -170,7 +204,14 @@ export default async (req: Request, _context: Context) => {
             : "Sorry, I couldn't generate a reply. Please rephrase your question.",
         })
       }
-      const reply = mode === "simplify" ? text : withReferences(text, mode)
+      let reply = mode === "simplify" ? text : withReferences(text, mode, analysis?.topics ?? [])
+      if (analysis) {
+        const head = [
+          ...analysis.urgent.map((u) => `> ⚠️ ${u}`),
+          analysis.summary,
+        ].filter(Boolean).join("\n\n")
+        if (head) reply = `${head}\n\n${reply}`
+      }
       return json({ reply, model })
     } catch (e: any) {
       clearTimeout(timer)
